@@ -17,7 +17,8 @@ func CreateProxyConnection(proxyUrl string, host string, port string, timeout ti
 	dialer, err := proxy.FromURL(uri, proxy.Direct)
 	if err != nil {
 		fmt.Printf("FromURL failed: %v\n", err)
-		return nil, fmt.Errorf("proxy_parse_error: %s", err)
+		dialer = &net.Dialer{}
+		//return nil, fmt.Errorf("proxy_parse_error: %s", err)
 	}
 	fmt.Println("start dial", servername, proxyUrl, port, time.Now().Format(time.StampMilli))
 	if f, ok := dialer.(proxy.ContextDialer); ok {
@@ -121,10 +122,10 @@ func CreateSmtpTlsConnection(proxyUrl string, host string, port string, timeout 
 	return
 }
 
-func SmtpPlainAuthCheck(host string, port string, username string, password string, proxyUrl string, timeout time.Duration) error {
-	c, err := CreateSmtpPlainConnection(proxyUrl, host, port, timeout)
+func SmtpPlainAuth(host string, port string, username string, password string, proxyUrl string, timeout time.Duration) (c *smtp.Client, err error) {
+	c, err = CreateSmtpPlainConnection(proxyUrl, host, port, timeout)
 	if err != nil {
-		return fmt.Errorf("create_smtp_plain_error: %s", err)
+		return nil, fmt.Errorf("create_smtp_plain_error: %s", err)
 	}
 	fmt.Println("connected")
 	auth := smtp.PlainAuth("", username, password, host)
@@ -140,11 +141,10 @@ func SmtpPlainAuthCheck(host string, port string, username string, password stri
 		}
 	}()
 	if err = c.Auth(auth); err != nil {
-		return fmt.Errorf("auth_error: %s", err)
+		return nil, fmt.Errorf("auth_error: %s", err)
 	}
-	c.Close()
 	fmt.Println("auth")
-	return nil
+	return c, nil
 }
 func SmtpSslAuth(host string, port string, username string, password string, proxyUrl string, timeout time.Duration) (c *smtp.Client, err error) {
 	auth := smtp.PlainAuth("", username, password, host)
@@ -173,10 +173,10 @@ func SmtpSslAuth(host string, port string, username string, password string, pro
 	return
 }
 
-func SmtpTlsAuthCheck(host string, port string, username string, password string, proxyUrl string, timeout time.Duration) error {
-	c, err := CreateSmtpTlsConnection(proxyUrl, host, port, timeout)
+func SmtpTlsAuth(host string, port string, username string, password string, proxyUrl string, timeout time.Duration) (c *smtp.Client, err error) {
+	c, err = CreateSmtpTlsConnection(proxyUrl, host, port, timeout)
 	if err != nil {
-		return fmt.Errorf("create_smtp_tls_error: %s", err)
+		return nil, fmt.Errorf("create_smtp_tls_error: %s", err)
 	}
 
 	fmt.Println("connected")
@@ -193,9 +193,8 @@ func SmtpTlsAuthCheck(host string, port string, username string, password string
 		}
 	}()
 	if err = c.Auth(auth); err != nil {
-		return fmt.Errorf("auth_error: %s", err)
+		return nil, fmt.Errorf("auth_error: %s", err)
 	}
 	fmt.Println("auth")
-	c.Close()
-	return nil
+	return c, nil
 }
